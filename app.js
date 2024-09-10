@@ -14,8 +14,12 @@ app.use(cors());
 app.use(express.json());
 // app.use('/images', express.static('public'));
 
-app.use('/images/carros', express.static('/public/imgCar'));
-app.use('/images/motos', express.static('/public/imgMotos'));
+const path = require('path');
+
+// Configura rutas para servir imágenes estáticas
+app.use('/images/carros', express.static(path.join(__dirname, 'public', 'imgCar')));
+app.use('/images/motos', express.static(path.join(__dirname, 'public', 'imgMotos')));
+
 app.use(express.urlencoded({ extended: true }));
 
 // OBTENER LOS TODOS LOS VEHICULOS
