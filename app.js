@@ -2,7 +2,33 @@ const express = require('express');
 const sql = require('mssql');
 const cors = require('cors');
 const config = require('./conexion');
+const multer = require('multer');
 
+// Configuración de almacenamiento para multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        // Aquí decides dónde se almacenarán las imágenes
+        cb(null, path.join(__dirname, 'public', 'imgCar')); // Carpeta de destino para imágenes de carros
+    },
+    filename: (req, file, cb) => {
+        // Generar un nombre único para cada archivo
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname)); // Guarda con extensión original
+    }
+});
+
+// const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Solo se permiten archivos de imagen.'));
+        }
+    },
+    limits: { fileSize: 1024 * 1024 * 5 } // Limite de 5MB
+});
 
 
 
@@ -13,7 +39,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 // app.use('/images', express.static('public'));
-
 const path = require('path');
 
 // Configura rutas para servir imágenes estáticas
@@ -91,9 +116,10 @@ app.get('/vehiculos/:id', async (req, res) => {
 });
 
 //agregar vehiculos
-app.post('/vehiculos', async (req, res) => {
+app.post('/vehiculos', upload.single('imagen'), async (req, res) => {
     try {
-        const { tipo, marca, modelo, año, color, precio, imagen_url } = req.body;
+        const { tipo, marca, modelo, año, color, precio } = req.body;
+        const imagen_url = req.file ? `images/carros/${req.file.filename}` : null;
 
         const pool = await sql.connect(config);
         const result = await pool.request()
@@ -112,6 +138,7 @@ app.post('/vehiculos', async (req, res) => {
         res.status(500).send('Error en el servidor');
     }
 });
+
 
 // Endpoint para actualizar un vehículo por ID
 app.put('/vehiculos/:id', async (req, res) => {
@@ -170,7 +197,7 @@ app.delete('/vehiculos/:id', async (req, res) => {
 
 
 //  const port = 3000;    //puerto local
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 10000;   // PUERTO ONLINE
 app.listen(port, () => {
     console.log(`Conectado al puerto: ${port}`);
 });
